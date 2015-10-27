@@ -1,0 +1,6 @@
+bin/*
+filesys/*
+machine/*
+network/*
+vm/*
+Makefile*
