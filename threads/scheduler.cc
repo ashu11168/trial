@@ -30,6 +30,12 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+
+    // For the unix scheduler
+    int a;
+    for(a=0; a<MAX_THREAD_COUNT; a++) {
+        cpu_count[a] = 0;
+    }
 } 
 
 //----------------------------------------------------------------------
@@ -54,7 +60,11 @@ void
 Scheduler::ReadyToRun (NachOSThread *thread)
 {
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
-
+    if(thread->getStatus()==RUNNING){
+        if(sched_algo == UNIX) {
+            UpdateThreadPriority();
+        }
+    }
     thread->setStatus(READY);
     readyList->Append((void *)thread);
 }
@@ -70,7 +80,11 @@ Scheduler::ReadyToRun (NachOSThread *thread)
 NachOSThread *
 Scheduler::FindNextToRun ()
 {
-    return (NachOSThread *)readyList->Remove();
+    if(sched_algo == UNIX){
+        return (Thread * readyList) -> nextThreadUNIX();
+    }
+    else
+        return (NachOSThread *)readyList->Remove();
 }
 
 //----------------------------------------------------------------------
@@ -158,6 +172,44 @@ Scheduler::Tail ()
         currentThread->space->RestoreState();
     }
 #endif
+}
+
+//------------------------------------------------------------------------
+// Scheduler::UpdateThreadPriority
+// Update the priority of the currently running thread for UNIX scheduling
+//-------------------------------------------------------------------------
+void Scheduler::UpdateThreadPriority()
+{
+    
+    int m, BurstTime=stats->totalTicks-BurstStartTime;
+    int CPUtime, threadPID, threadPriority;
+    threadPID=currentThread->GetPID();
+    if(BurstTime >0)
+    {
+        m=0;
+        while(m<thread_index)
+        {
+            if(!exitThreadArray[m])
+            {
+                if( m!=threadPID ){
+                CPUtime = threadArray[m]->CPUtime;
+                CPUtime = CPUtime/2;
+                threadPriority = threadArray[m]->basePriority + (CPUtime / 2);
+                threadArray[m]->CPUtime = CPUtime ;
+                threadArray[m]->priority = threadPriority;
+                }
+                else if ( m == threadPID){
+                    CPUtime = currentThread->CPUtime;
+                    CPUtime += BurstTime;
+                    CPUtime = CPUtime/2;        
+                    currentThread->CPUtime = CPUtime ;
+                    threadPriority = currentThread->basePriority + CPUtime/2;
+                    currentThread->priority = threadPriority;
+                }
+            }
+            m++;
+        }       
+    }
 }
 
 //----------------------------------------------------------------------

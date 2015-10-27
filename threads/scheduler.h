@@ -29,6 +29,7 @@ class Scheduler {
     void Print();			// Print contents of ready list
     
     void Tail();                        // Used by fork()
+    void UpdateThreadPriority();       //used by unix scheduler
 
   private:
     List *readyList;  		// queue of threads that are ready to run,

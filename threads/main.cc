@@ -61,7 +61,7 @@ extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 void function_batchstart (int temp);
-void function_threadrun(char* name_executablefile);
+void function_threadrun(char* name_executablefile, int Priority);
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.
@@ -194,7 +194,7 @@ main(int argc, char **argv)
 				   			}
 				   		}
 				   		printf("%s %d\n", executable, executable_priority);
-				   		function_threadrun(executable);
+				   		function_threadrun(executable, executable_priority);
 			   		}
 			   		if (*buffer_position == '\n'){
 				   		buffer_position++;
@@ -274,7 +274,7 @@ main(int argc, char **argv)
 //CHANGE BEGINS
 
 
-void function_threadrun(char* name_executablefile){
+void function_threadrun(char* name_executablefile, int Priority){
 
 //open the file
 	OpenFile *input_file = fileSystem->Open(name_executablefile);
@@ -285,7 +285,7 @@ void function_threadrun(char* name_executablefile){
     }
 
     NachOSThread * thread_child = new NachOSThread("newthread_batch");
-
+    thread_child->updateBasePriority(Priority);
     thread_child->space = new AddrSpace (input_file);
     delete input_file;
     thread_child->space->InitRegisters();             // set the initial register values

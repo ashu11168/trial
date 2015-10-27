@@ -133,6 +133,8 @@ class NachOSThread {
 
     void SortedInsertInWaitQueue (unsigned when);       // Called by syscall_Sleep handler
 
+    void updatePriority(int);                          //To get the correct base value for the UNIX scheduler
+
     void IncInstructionCount();
     unsigned GetInstructionCount();
 
