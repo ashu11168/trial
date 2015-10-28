@@ -60,7 +60,7 @@ NachOSThread::NachOSThread(char* threadName)
     for (i=0; i<MAX_CHILD_COUNT; i++) exitedChild[i] = false;
 
     instructionCount = 0;
-    if(sched_algo == UNIX)
+    if(scheduling_algorithm_number == UNIX)
     {
       if (ppid != -1){
         basePriority = currentThread->basePriority;
@@ -577,4 +577,20 @@ NachOSThread::updateBasePriority (int niceValue){
     basePriority = niceValue + 50;
     priority = basePriority;
   }
+}
+
+//------------------------------------------------------------------
+// Update the base priority of the thread of unix scheduling
+//-----------------------------------------------------------------
+void
+NachOSThread::set_Status(ThreadStatus threadStatus){
+  status = threadStatus;
+}
+
+//------------------------------------------------------------------
+// Update the base priority of the thread of unix scheduling
+//-----------------------------------------------------------------
+ThreadStatus
+NachOSThread::get_Status(){
+  return status;
 }

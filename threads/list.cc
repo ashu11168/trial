@@ -17,6 +17,7 @@
 
 #include "copyright.h"
 #include "list.h"
+#include "thread.h"
 
 //----------------------------------------------------------------------
 // ListElement::ListElement
@@ -256,13 +257,13 @@ void * List::nextThreadUNIX()
         delete minThread;
     } 
     else {                                             
-        min = ((Thread*)(minThread->item))->priority;
+        min = ((NachOSThread*)(minThread->item))->priority;
         prevThread = iter;
         for(iter=first->next; iter!=NULL; iter=iter->next){
-            if (((Thread*)(element->item))->priority < min) {
+            if (((NachOSThread*)(iter->item))->priority < min) {
               minThread = iter;
               prevMinThread = prevThread;
-              min = ((Thread*)(minThread->item))->priority;
+              min = ((NachOSThread*)(minThread->item))->priority;
           }
           prevThread = iter;
         }

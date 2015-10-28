@@ -22,6 +22,8 @@
 #include "scheduler.h"
 #include "system.h"
 
+int BurstStartTime;
+
 //----------------------------------------------------------------------
 // Scheduler::Scheduler
 // 	Initialize the list of ready but not running threads to empty.
@@ -30,12 +32,6 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
-
-    // For the unix scheduler
-    int a;
-    for(a=0; a<MAX_THREAD_COUNT; a++) {
-        cpu_count[a] = 0;
-    }
 } 
 
 //----------------------------------------------------------------------
@@ -60,12 +56,12 @@ void
 Scheduler::ReadyToRun (NachOSThread *thread)
 {
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
-    if(thread->getStatus()==RUNNING){
-        if(sched_algo == UNIX) {
+    if(thread->get_Status()==RUNNING){
+        if(scheduling_algorithm_number == UNIX) {
             UpdateThreadPriority();
         }
     }
-    thread->setStatus(READY);
+    thread->set_Status(READY);
     readyList->Append((void *)thread);
 }
 
@@ -80,8 +76,8 @@ Scheduler::ReadyToRun (NachOSThread *thread)
 NachOSThread *
 Scheduler::FindNextToRun ()
 {
-    if(sched_algo == UNIX){
-        return (Thread * readyList) -> nextThreadUNIX();
+    if(scheduling_algorithm_number == UNIX){
+        return (NachOSThread *) readyList -> nextThreadUNIX();
     }
     else
         return (NachOSThread *)readyList->Remove();
@@ -105,6 +101,7 @@ void
 Scheduler::Run (NachOSThread *nextThread)
 {
     NachOSThread *oldThread = currentThread;
+    BurstStartTime=stats->totalTicks;
     
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
@@ -181,7 +178,8 @@ Scheduler::Tail ()
 void Scheduler::UpdateThreadPriority()
 {
     
-    int m, BurstTime=stats->totalTicks-BurstStartTime;
+    unsigned int m;
+    int BurstTime=stats->totalTicks-BurstStartTime;
     int CPUtime, threadPID, threadPriority;
     threadPID=currentThread->GetPID();
     if(BurstTime >0)

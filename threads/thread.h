@@ -133,10 +133,17 @@ class NachOSThread {
 
     void SortedInsertInWaitQueue (unsigned when);       // Called by syscall_Sleep handler
 
-    void updatePriority(int);                          //To get the correct base value for the UNIX scheduler
+    void updateBasePriority(int);                          //To get the correct base value for the UNIX scheduler
 
     void IncInstructionCount();
     unsigned GetInstructionCount();
+
+    int priority;                                       //priority strored for unix scheduling
+    int CPUtime; 
+    int basePriority;
+
+    void set_Status(ThreadStatus threadStatus);
+    ThreadStatus get_Status();
 
   private:
     // some of the private data for this class is listed above

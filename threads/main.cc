@@ -125,7 +125,10 @@ main(int argc, char **argv)
 //CHANGE BEGINS
   else if(!strcmp(*argv, "-F"))
   { //filename as instructed in the assignment
-        ASSERT (argc > 1);
+        if(argc <2){
+        	printf("Please enter filename along the executable for the -F option");
+        	ASSERT(0);
+        }
         argCount = 2;
 
         //FILENAME READ
@@ -136,67 +139,66 @@ main(int argc, char **argv)
 
         //PRINT ERROR IF YOU CANT OPEN THE FILE
 		    if (file_open == NULL)
-      {
+      		{
 				printf("Sorry, cannot open the file %s\n", name_file);
 				delete file_open;
 			}
 
       //IF YOU ARE ABLE TO OPEN THE FILE
 			else
-      {
+      			{
 
 				char *buf = new char[1000];
 
 				int byte_number = file_open->Read(buf, 1500);
-        //Make last position of string as the null character
+        		//Make last position of string as the null character
 			   	buf[byte_number] = '\0';
 
-          //This variable basically loops over the string, if this gives error, change to normal indexing
-			   	char *buffer_position = buf;
+          		//This variable basically loops over the string, if this gives error, change to normal indexing
+			   	int buffer_position = 0;
 
 
-          // Read Scheduling Algorithm and store it in the global variable
-          				scheduling_algorithm_number = 0;
-          				while (*buffer_position != '\n' && *buffer_position != '\0')
+  				scheduling_algorithm_number = 0;
+  				while (buf[buffer_position] != '\n' && buf[buffer_position] != '\0')
                   {
-          					scheduling_algorithm_number = 10*scheduling_algorithm_number + (*buffer_position - '0');
+          					scheduling_algorithm_number = 10*scheduling_algorithm_number + (buf[buffer_position] - '0');
           					buffer_position++;
-          				}
+	  				}
           // Read batch processes and schedule them
 
 
 
-			   	while(*buffer_position!= '\0')
+			   	while(buf[buffer_position]!= '\0')
           {
-			   		while (*buffer_position != '\0' && *buffer_position != '\n')
+			   		while (buf[buffer_position] != '\0' && buf[buffer_position] != '\n')
             {
 			   			char executable[1000];
 				   		int executable_priority = 0;
 			   			int position = 0;
-			   			while (*buffer_position != ' ' && *buffer_position != '\n')
+			   			while (buf[buffer_position] != ' ' && buf[buffer_position] != '\n')
               {
-				   			executable[position] = *buffer_position;
+				   			executable[position] = buf[buffer_position];
 				   			buffer_position++; position++;
 				   		}
 				   		executable[position] = '\0';
 
-				   		if(*buffer_position == '\n')
+				   		if(buf[buffer_position] == '\n')
               {
 				   			executable_priority = 100;
 				   		}
               else
               {
 				   			buffer_position++;
-							  while (*buffer_position != '\0' && *buffer_position != '\n')
+							  while (buf[buffer_position] != '\0' && buf[buffer_position] != '\n')
                {
-				   				executable_priority = executable_priority*10 + (*buffer_position - '0');
+				   				executable_priority = executable_priority*10 + (buf[buffer_position] - '0');
 				   				buffer_position++;
 				   			}
 				   		}
 				   		printf("%s %d\n", executable, executable_priority);
 				   		function_threadrun(executable, executable_priority);
 			   		}
-			   		if (*buffer_position == '\n'){
+			   		if (buf[buffer_position] == '\n'){
 				   		buffer_position++;
 			   		}
 		   		}
