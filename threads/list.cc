@@ -17,7 +17,6 @@
 
 #include "copyright.h"
 #include "list.h"
-#include "thread.h"
 
 //----------------------------------------------------------------------
 // ListElement::ListElement
@@ -237,54 +236,3 @@ List::SortedRemove(int *keyPtr)
     return thing;
 }
 
-void * List::nextThreadUNIX()
-{
-    if (IsEmpty())
-        return NULL;
-    int min;
-    void *nextThread;
-    
-    ListElement *iter;
-    iter =first;
-    ListElement *prevThread = NULL;
-    ListElement *minThread = first;
-    ListElement *prevMinThread = NULL;
-    // check if the list has only one thread
-    if (first == last) {
-        nextThread = first->item;
-        first = NULL;
-        last = NULL;
-        delete minThread;
-    } 
-    else {                                             
-        min = ((NachOSThread*)(minThread->item))->priority;
-        prevThread = iter;
-        for(iter=first->next; iter!=NULL; iter=iter->next){
-            if (((NachOSThread*)(iter->item))->priority < min) {
-              minThread = iter;
-              prevMinThread = prevThread;
-              min = ((NachOSThread*)(minThread->item))->priority;
-          }
-          prevThread = iter;
-        }
-
-        nextThread = minThread->item;
-        //if the min thread is last in the list
-        if (minThread->next == NULL) {           
-           prevMinThread->next = NULL;                 
-           last = prevMinThread;                    
-        }
-        // if it's the first element
-        else if (prevMinThread == NULL) {              
-           first = first->next;                     
-        }
-        // neither the first nor the last
-        else {
-           prevMinThread->next = minThread->next;   
-        }
-        //delete the thread removed
-        delete minThread;
-    }
-    //return the next thread to run
-    return nextThread;
-}

@@ -61,7 +61,7 @@ extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 void function_batchstart (int temp);
-void function_threadrun(char* name_executablefile, int Priority);
+void function_threadrun(char* name_executablefile);
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.
@@ -125,10 +125,7 @@ main(int argc, char **argv)
 //CHANGE BEGINS
   else if(!strcmp(*argv, "-F"))
   { //filename as instructed in the assignment
-        if(argc <2){
-        	printf("Please enter filename along the executable for the -F option");
-        	ASSERT(0);
-        }
+        ASSERT (argc > 1);
         argCount = 2;
 
         //FILENAME READ
@@ -139,66 +136,67 @@ main(int argc, char **argv)
 
         //PRINT ERROR IF YOU CANT OPEN THE FILE
 		    if (file_open == NULL)
-      		{
+      {
 				printf("Sorry, cannot open the file %s\n", name_file);
 				delete file_open;
 			}
 
       //IF YOU ARE ABLE TO OPEN THE FILE
 			else
-      			{
+      {
 
 				char *buf = new char[1000];
 
 				int byte_number = file_open->Read(buf, 1500);
-        		//Make last position of string as the null character
+        //Make last position of string as the null character
 			   	buf[byte_number] = '\0';
 
-          		//This variable basically loops over the string, if this gives error, change to normal indexing
-			   	int buffer_position = 0;
+          //This variable basically loops over the string, if this gives error, change to normal indexing
+			   	char *buffer_position = buf;
 
 
-  				scheduling_algorithm_number = 0;
-  				while (buf[buffer_position] != '\n' && buf[buffer_position] != '\0')
+          // Read Scheduling Algorithm and store it in the global variable
+          				scheduling_algorithm_number = 0;
+          				while (*buffer_position != '\n' && *buffer_position != '\0')
                   {
-          					scheduling_algorithm_number = 10*scheduling_algorithm_number + (buf[buffer_position] - '0');
+          					scheduling_algorithm_number = 10*scheduling_algorithm_number + (*buffer_position - '0');
           					buffer_position++;
-	  				}
+          				}
           // Read batch processes and schedule them
 
 
 
-			   	while(buf[buffer_position]!= '\0')
+			   	while(*buffer_position!= '\0')
           {
-			   		while (buf[buffer_position] != '\0' && buf[buffer_position] != '\n')
+			   		while (*buffer_position != '\0' && *buffer_position != '\n')
             {
 			   			char executable[1000];
 				   		int executable_priority = 0;
 			   			int position = 0;
-			   			while (buf[buffer_position] != ' ' && buf[buffer_position] != '\n')
+			   			while (*buffer_position != ' ' && *buffer_position != '\n')
               {
-				   			executable[position] = buf[buffer_position];
+				   			executable[position] = *buffer_position;
 				   			buffer_position++; position++;
 				   		}
 				   		executable[position] = '\0';
 
-				   		if(buf[buffer_position] == '\n')
+				   		if(*buffer_position == '\n')
               {
 				   			executable_priority = 100;
 				   		}
               else
               {
 				   			buffer_position++;
-							  while (buf[buffer_position] != '\0' && buf[buffer_position] != '\n')
+							  while (*buffer_position != '\0' && *buffer_position != '\n')
                {
-				   				executable_priority = executable_priority*10 + (buf[buffer_position] - '0');
+				   				executable_priority = executable_priority*10 + (*buffer_position - '0');
 				   				buffer_position++;
 				   			}
 				   		}
 				   		printf("%s %d\n", executable, executable_priority);
-				   		function_threadrun(executable, executable_priority);
+				   		function_threadrun(executable);
 			   		}
-			   		if (buf[buffer_position] == '\n'){
+			   		if (*buffer_position == '\n'){
 				   		buffer_position++;
 			   		}
 		   		}
@@ -276,7 +274,7 @@ main(int argc, char **argv)
 //CHANGE BEGINS
 
 
-void function_threadrun(char* name_executablefile, int Priority){
+void function_threadrun(char* name_executablefile){
 
 //open the file
 	OpenFile *input_file = fileSystem->Open(name_executablefile);
@@ -287,7 +285,7 @@ void function_threadrun(char* name_executablefile, int Priority){
     }
 
     NachOSThread * thread_child = new NachOSThread("newthread_batch");
-    thread_child->updateBasePriority(Priority);
+
     thread_child->space = new AddrSpace (input_file);
     delete input_file;
     thread_child->space->InitRegisters();             // set the initial register values

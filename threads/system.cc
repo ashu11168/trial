@@ -20,6 +20,8 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 unsigned numPagesAllocated;              // number of physical frames allocated
 int scheduling_algorithm_number;
+int BurstStartTime;
+
 
 
 NachOSThread *threadArray[MAX_THREAD_COUNT];  // Array of thread pointers
@@ -109,7 +111,7 @@ Initialize(int argc, char **argv)
     numPagesAllocated = 0;
 
 
-    scheduling_algorithm_number = NON_PREEMPTIVE ; 
+    scheduling_algorithm_number = NON_PREEMPTIVE ;
 
     for (i=0; i<MAX_THREAD_COUNT; i++) { threadArray[i] = NULL; exitThreadArray[i] = false; }
     thread_index = 0;
@@ -179,6 +181,8 @@ Initialize(int argc, char **argv)
     currentThread = new NachOSThread("main");
     currentThread->setStatus(RUNNING);
 
+    stats->time_start=stats->totalTicks;
+    BurstStartTime=stats->totalTicks;
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
 

@@ -17,8 +17,6 @@
 // the data structures and operations needed to keep track of which 
 // thread is running, and which threads are ready but not running.
 
-
-
 class Scheduler {
   public:
     Scheduler();			// Initialize list of ready threads 
@@ -31,7 +29,6 @@ class Scheduler {
     void Print();			// Print contents of ready list
     
     void Tail();                        // Used by fork()
-    void UpdateThreadPriority();       //used by unix scheduler
 
   private:
     List *readyList;  		// queue of threads that are ready to run,

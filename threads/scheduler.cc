@@ -1,4 +1,4 @@
-// scheduler.cc 
+// scheduler.cc
 //	Routines to choose the next thread to run, and to dispatch to
 //	that thread.
 //
@@ -7,22 +7,20 @@
 //	(since we are on a uniprocessor).
 //
 // 	NOTE: We can't use Locks to provide mutual exclusion here, since
-// 	if we needed to wait for a lock, and the lock was busy, we would 
-//	end up calling FindNextToRun(), and that would put us in an 
+// 	if we needed to wait for a lock, and the lock was busy, we would
+//	end up calling FindNextToRun(), and that would put us in an
 //	infinite loop.
 //
 // 	Very simple implementation -- no priorities, straight FIFO.
 //	Might need to be improved in later assignments.
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
-// All rights reserved.  See copyright.h for copyright notice and limitation 
+// All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
 #include "copyright.h"
 #include "scheduler.h"
 #include "system.h"
-
-int BurstStartTime;
 
 //----------------------------------------------------------------------
 // Scheduler::Scheduler
@@ -30,9 +28,9 @@ int BurstStartTime;
 //----------------------------------------------------------------------
 
 Scheduler::Scheduler()
-{ 
-    readyList = new List; 
-} 
+{
+    readyList = new List;
+}
 
 //----------------------------------------------------------------------
 // Scheduler::~Scheduler
@@ -40,9 +38,9 @@ Scheduler::Scheduler()
 //----------------------------------------------------------------------
 
 Scheduler::~Scheduler()
-{ 
-    delete readyList; 
-} 
+{
+    delete readyList;
+}
 
 //----------------------------------------------------------------------
 // Scheduler::ReadyToRun
@@ -56,12 +54,52 @@ void
 Scheduler::ReadyToRun (NachOSThread *thread)
 {
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
-    if(thread->get_Status()==RUNNING){
-        if(scheduling_algorithm_number == UNIX) {
-            UpdateThreadPriority();
+
+
+        if(thread->getStatus() == RUNNING)
+        {
+            int var_burst = stats->totalTicks-BurstStartTime;
+            if(var_burst > 0)
+            {
+                stats->time_cpu_occupied = stats->time_cpu_occupied+ var_burst;
+                stats->count_burst =   stats->count_burst + 1;
+
+/*
+                    //     SJF ERROR SECTION
+                if(scheduling_algorithm_number == NON_PREEMPTIVE_SJF)
+                {
+                    int var_error = var_burst - thread->value_tau_expected;
+
+                    if(var_error>=0)
+                    {
+                      stats->sjf_error += var_error;
+
+                    }
+                    else
+                    {
+                      stats->sjf_error += (var_error*-1);
+
+                    }
+                    thread->value_tau_expected = (int)(0.5*var_burst + 0.5*thread->value_tau_expected);
+                }
+
+*/
+                          //SIMPLE MAXIMA FINDING
+                                if(var_burst > stats->maxburst)
+                                    stats->maxburst=var_burst;
+
+                                    //SIMPLE MINIMA FINDING
+                                if(var_burst < stats->minburst)
+                                    stats->minburst=var_burst;
+            }
         }
-    }
-    thread->set_Status(READY);
+
+
+
+    thread->setStatus(READY);
+    thread->start_readyqueue_wait=stats->totalTicks;
+
+
     readyList->Append((void *)thread);
 }
 
@@ -76,11 +114,7 @@ Scheduler::ReadyToRun (NachOSThread *thread)
 NachOSThread *
 Scheduler::FindNextToRun ()
 {
-    if(scheduling_algorithm_number == UNIX){
-        return (NachOSThread *) readyList -> nextThreadUNIX();
-    }
-    else
-        return (NachOSThread *)readyList->Remove();
+    return (NachOSThread *)readyList->Remove();
 }
 
 //----------------------------------------------------------------------
@@ -101,31 +135,34 @@ void
 Scheduler::Run (NachOSThread *nextThread)
 {
     NachOSThread *oldThread = currentThread;
+
     BurstStartTime=stats->totalTicks;
-    
-#ifdef USER_PROGRAM			// ignore until running user programs 
+//    nextThread->thread_burst_start = BurstStartTime;
+    stats->time_waiting= stats->time_waiting + stats->totalTicks-nextThread->start_readyqueue_wait;
+
+#ifdef USER_PROGRAM			// ignore until running user programs
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers
 	currentThread->space->SaveState();
     }
 #endif
-    
+
     oldThread->CheckOverflow();		    // check if the old thread
 					    // had an undetected stack overflow
 
     currentThread = nextThread;		    // switch to the next thread
     currentThread->setStatus(RUNNING);      // nextThread is now running
-    
+
     DEBUG('t', "Switching from thread \"%s\" to thread \"%s\"\n",
 	  oldThread->getName(), nextThread->getName());
-    
-    // This is a machine-dependent assembly language routine defined 
+
+    // This is a machine-dependent assembly language routine defined
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
 
     _SWITCH(oldThread, nextThread);
-    
+
     DEBUG('t', "Now in thread \"%s\"\n", currentThread->getName());
 
     // If the old thread gave up the processor because it was finishing,
@@ -136,7 +173,7 @@ Scheduler::Run (NachOSThread *nextThread)
         delete threadToBeDestroyed;
 	threadToBeDestroyed = NULL;
     }
-    
+
 #ifdef USER_PROGRAM
     if (currentThread->space != NULL) {		// if there is an address space
         currentThread->RestoreUserState();     // to restore, do it.
@@ -169,45 +206,6 @@ Scheduler::Tail ()
         currentThread->space->RestoreState();
     }
 #endif
-}
-
-//------------------------------------------------------------------------
-// Scheduler::UpdateThreadPriority
-// Update the priority of the currently running thread for UNIX scheduling
-//-------------------------------------------------------------------------
-void Scheduler::UpdateThreadPriority()
-{
-    
-    unsigned int m;
-    int BurstTime=stats->totalTicks-BurstStartTime;
-    int CPUtime, threadPID, threadPriority;
-    threadPID=currentThread->GetPID();
-    if(BurstTime >0)
-    {
-        m=0;
-        while(m<thread_index)
-        {
-            if(!exitThreadArray[m])
-            {
-                if( m!=threadPID ){
-                CPUtime = threadArray[m]->CPUtime;
-                CPUtime = CPUtime/2;
-                threadPriority = threadArray[m]->basePriority + (CPUtime / 2);
-                threadArray[m]->CPUtime = CPUtime ;
-                threadArray[m]->priority = threadPriority;
-                }
-                else if ( m == threadPID){
-                    CPUtime = currentThread->CPUtime;
-                    CPUtime += BurstTime;
-                    CPUtime = CPUtime/2;        
-                    currentThread->CPUtime = CPUtime ;
-                    threadPriority = currentThread->basePriority + CPUtime/2;
-                    currentThread->priority = threadPriority;
-                }
-            }
-            m++;
-        }       
-    }
 }
 
 //----------------------------------------------------------------------

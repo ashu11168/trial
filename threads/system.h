@@ -23,7 +23,7 @@
 #define ROUND_ROBIN        3
 #define UNIX      4
 extern int scheduling_algorithm_number;
-
+extern int BurstStartTime;
 // Initialization and cleanup routines
 extern void Initialize(int argc, char **argv); 	// Initialization,
 						// called before anything else
